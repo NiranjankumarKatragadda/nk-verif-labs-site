@@ -502,7 +502,7 @@ document.getElementById("scoping-form").addEventListener("submit", async (e) => 
   st.className = "font-mono text-xs text-cyan-400";
   st.textContent = "Sending scoping brief...";
   try {
-    const res = await fetch("https://formspree.io/f/YOUR_FORMSPREE_ID", {
+    const res = await fetch("https://formspree.io/f/PASTE_YOUR_ID_HERE", {
       method: "POST",
       headers: { "Accept": "application/json", "Content-Type": "application/json" },
       body: JSON.stringify({

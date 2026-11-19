@@ -1,0 +1,98 @@
+name: Publish GitHub Issue as Blog Post
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  publish-issue:
+    if: github.event.label.name == 'publish-blog' && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Convert Issue to Markdown Post
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - << 'INNER'
+          import datetime, os, re
+
+          num = int(os.environ["ISSUE_NUMBER"])
+          title = os.environ["ISSUE_TITLE"].strip()
+          body = (os.environ.get("ISSUE_BODY") or "").strip()
+
+          slug = re.sub(r"[^a-zA-Z0-9]+", "-", title.lower()).strip("-")
+          post_id = f"{num}-{slug}"
+          filename = f"posts/{num:02d}-{slug}.md"
+
+          meta = {
+              "category": "IP Verification",
+              "excerpt": "",
+              "featured": "false",
+              "date": "",
+              "readTime": ""
+          }
+
+          content = body
+          if body.startswith("---\n"):
+              parts = body.split("\n---\n", 1)
+              if len(parts) == 2:
+                  header, content = parts[0][4:], parts[1].strip()
+                  for line in header.splitlines():
+                      if ":" in line:
+                          k, v = line.split(":", 1)
+                          meta[k.strip()] = v.strip()
+
+          if not meta["excerpt"]:
+              first_line = content.splitlines()[0] if content else title
+              plain = re.sub(r"[#*`>_]+", "", first_line).strip()
+              meta["excerpt"] = plain[:180] + ("..." if len(plain) > 180 else "")
+
+          if not meta["date"]:
+              meta["date"] = datetime.date.today().strftime("%b %d, %Y")
+
+          if not meta["readTime"]:
+              words = len(content.split())
+              mins = max(1, round(words / 200))
+              meta["readTime"] = f"{mins} min read"
+
+          os.makedirs("posts", exist_ok=True)
+          with open(filename, "w", encoding="utf-8") as f:
+              f.write(
+                  f"---\n"
+                  f"id: {post_id}\n"
+                  f"featured: {meta['featured'].lower()}\n"
+                  f"title: {title}\n"
+                  f"excerpt: {meta['excerpt']}\n"
+                  f"category: {meta['category']}\n"
+                  f"date: {meta['date']}\n"
+                  f"readTime: {meta['readTime']}\n"
+                  f"---\n\n"
+                  f"{content}\n"
+              )
+          print(f"Generated {filename}")
+          INNER
+
+      - name: Commit and push post
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add posts/*.md
+          git commit -m "blog: publish issue #${{ github.event.issue.number }}"
+          git push
+
+      - name: Comment and close issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "Published to \`posts/\` and triggered GitHub Pages deployment."
+          gh issue close "$ISSUE_NUMBER" --reason completed

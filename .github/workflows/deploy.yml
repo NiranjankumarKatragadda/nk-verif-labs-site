@@ -1,0 +1,64 @@
+name: Build Blog Manifest & Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate posts/manifest.json from Markdown
+        run: |
+          python3 - << 'PYEOF'
+          import glob, json, os, re
+
+          posts = []
+          for path in sorted(glob.glob("posts/*.md")):
+              with open(path, "r", encoding="utf-8") as f:
+                  raw = f.read()
+              match = re.match(r"^---\n(.*?)\n---\n(.*)$", raw, re.DOTALL)
+              if not match:
+                  continue
+              meta_block, body = match.groups()
+              meta = {}
+              for line in meta_block.strip().splitlines():
+                  if ":" in line:
+                      k, v = line.split(":", 1)
+                      meta[k.strip()] = v.strip()
+              posts.append({
+                  "id": meta.get("id", os.path.splitext(os.path.basename(path))[0]),
+                  "featured": meta.get("featured", "false").lower() == "true",
+                  "title": meta.get("title", "Untitled"),
+                  "excerpt": meta.get("excerpt", ""),
+                  "category": meta.get("category", "IP Verification"),
+                  "date": meta.get("date", ""),
+                  "readTime": meta.get("readTime", "5 min read"),
+                  "markdown": body.strip()
+              })
+
+          with open("posts/manifest.json", "w", encoding="utf-8") as out:
+              json.dump(posts, out, indent=2)
+          print(f"Built manifest with {len(posts)} posts.")
+          PYEOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -310,24 +310,52 @@
 
   <!-- Contact / Pre-Shuttle Audit Section -->
   <section id="contact" class="max-w-6xl mx-auto px-6 py-20">
-    <div class="rounded-2xl bg-gradient-to-br from-navycard to-obsidian border border-slate-800 p-8 sm:p-12 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-      <div class="max-w-xl">
-        <p class="font-mono text-xs uppercase tracking-widest text-cyan-400 mb-2">// Ready for Tapeout?</p>
-        <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3">Engage NK Verif Labs on Your Next IP or Shuttle</h2>
-        <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
-          Need block-level Cocotb verification, Sky130 / IHP SG13G2 macro hardening, or a pre-shuttle DRC/LVS sign-off audit? Send over your RTL scope and target shuttle deadline.
-        </p>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-3 shrink-0">
-        <a href="mailto:contact@nkveriflabs.com" class="px-6 py-3.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-obsidian font-mono font-semibold text-sm text-center transition">
-          Request Scoping Call
-        </a>
-        <a href="https://github.com/NiranjankumarKatragadda" target="_blank" rel="noopener" class="px-6 py-3.5 rounded-lg bg-obsidian hover:bg-slate-900 text-slate-200 border border-slate-700 font-mono text-sm text-center transition">
-          GitHub Portfolio
-        </a>
-      </div>
+  <div class="rounded-2xl bg-navycard border border-slate-800 p-8 sm:p-12">
+    <div class="max-w-2xl mb-8">
+      <p class="font-mono text-xs uppercase tracking-widest text-cyan-400 mb-2">// Ready for Takeout?</p>
+      <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3">Scope Your IP or Shuttle Engagement</h2>
+      <p class="text-slate-400 text-sm sm:text-base leading-relaxed">Select your PDK, service scope, and target shuttle deadline to generate a structured scoping brief or send it directly to NK Verif Labs.</p>
     </div>
-  </section>
+    <form id="scoping-form" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div>
+        <label class="block font-mono text-xs text-slate-400 mb-1.5">Process / PDK</label>
+        <select id="scope-pdk" class="w-full bg-obsidian border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500">
+          <option>SkyWater 130nm (Sky130A)</option>
+          <option>IHP SG13G2 (130nm BiCMOS)</option>
+          <option>Dual PDK (Sky130 + IHP SG13G2)</option>
+          <option>RTL-Only / PDK-Agnostic</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-mono text-xs text-slate-400 mb-1.5">Service Type</label>
+        <select id="scope-service" class="w-full bg-obsidian border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500">
+          <option>Full RTL-to-GDSII Macro Hardening</option>
+          <option>Cocotb / SystemVerilog Functional Verification</option>
+          <option>Pre-Shuttle DRC / LVS / Static Timing Audit</option>
+          <option>End-to-End Verification + Tapeout Sign-Off</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-mono text-xs text-slate-400 mb-1.5">Target Shuttle Date</label>
+        <input id="scope-date" type="date" class="w-full bg-obsidian border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500" />
+      </div>
+      <div>
+        <label class="block font-mono text-xs text-slate-400 mb-1.5">Your Email / GitHub Handle</label>
+        <input id="scope-email" type="text" placeholder="name@company.com or @handle" class="w-full bg-obsidian border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="block font-mono text-xs text-slate-400 mb-1.5">RTL Scope, Clock Target & Macro Dimensions</label>
+        <textarea id="scope-notes" rows="3" placeholder="e.g., RV32I core + APB peripherals, 50 MHz clock, 1x1 tile or custom block size..." class="w-full bg-obsidian border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"></textarea>
+      </div>
+      <div class="md:col-span-2 flex flex-wrap items-center gap-3 pt-2">
+        <button type="submit" class="px-6 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-obsidian font-mono font-semibold text-sm transition">Send via Email Client</button>
+        <button id="copy-scope-btn" type="button" class="px-5 py-3 rounded-lg bg-obsidian hover:bg-slate-900 text-cyan-300 border border-slate-700 font-mono text-sm transition">Copy Scoping Brief</button>
+        <a href="https://github.com/NiranjankumarKatragadda" target="_blank" rel="noopener" class="px-5 py-3 rounded-lg bg-obsidian hover:bg-slate-900 text-slate-300 border border-slate-800 font-mono text-sm transition">GitHub Portfolio</a>
+        <span id="scope-status" class="font-mono text-xs text-emerald-400"></span>
+      </div>
+    </form>
+  </div>
+</section>
 
   <!-- Footer -->
   <footer class="border-t border-slate-800/80 py-8 text-center font-mono text-xs text-slate-500">
@@ -457,6 +485,25 @@
       searchQuery = e.target.value;
       render();
     });
+
+    function buildScopeText(){
+  const pdk = document.getElementById("scope-pdk").value;
+  const svc = document.getElementById("scope-service").value;
+  const dt = document.getElementById("scope-date").value || "Flexible / TBD";
+  const from = document.getElementById("scope-email").value || "Not provided";
+  const notes = document.getElementById("scope-notes").value || "No additional notes.";
+  return `PDK: ${pdk}\nService: ${svc}\nTarget Shuttle Date: ${dt}\nContact: ${from}\n\nScope & RTL\ndetails:\n${notes}`;
+}
+document.getElementById("scoping-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const subj = encodeURIComponent(`[NK Verif Labs Scoping] ${document.getElementById("scope-service").value} (${document.getElementById("scope-pdk").value})`i);
+  const body = encodeURIComponent(buildScopeText());
+  window.location.href = `mailto:contact@nkveriflabs.com?subject=${subj}&body=${body}`;
+});
+document.getElementById("copy-scope-btn").addEventListener("click", async () => {
+  await navigator.clipboard.writeText(buildScopeText());
+  document.getElementById("scope-status").textContent = "Copied scoping brief to clipboard!";
+});
 
     loadPosts();
   </script>

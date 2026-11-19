@@ -348,7 +348,7 @@
         <textarea id="scope-notes" rows="3" placeholder="e.g., RV32I core + APB peripherals, 50 MHz clock, 1x1 tile or custom block size..." class="w-full bg-obsidian border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500"></textarea>
       </div>
       <div class="md:col-span-2 flex flex-wrap items-center gap-3 pt-2">
-        <button type="submit" class="px-6 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-obsidian font-mono font-semibold text-sm transition">Send via Email Client</button>
+        <button type="submit" class="px-6 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-obsidian font-mono font-semibold text-sm transition">Submit Scoping Brief</button>
         <button id="copy-scope-btn" type="button" class="px-5 py-3 rounded-lg bg-obsidian hover:bg-slate-900 text-cyan-300 border border-slate-700 font-mono text-sm transition">Copy Scoping Brief</button>
         <a href="https://github.com/NiranjankumarKatragadda" target="_blank" rel="noopener" class="px-5 py-3 rounded-lg bg-obsidian hover:bg-slate-900 text-slate-300 border border-slate-800 font-mono text-sm transition">GitHub Portfolio</a>
         <span id="scope-status" class="font-mono text-xs text-emerald-400"></span>
@@ -494,11 +494,39 @@
   const notes = document.getElementById("scope-notes").value || "No additional notes.";
   return `PDK: ${pdk}\nService: ${svc}\nTarget Shuttle Date: ${dt}\nContact: ${from}\n\nScope & RTL\ndetails:\n${notes}`;
 }
-document.getElementById("scoping-form").addEventListener("submit", (e) => {
+document.getElementById("scoping-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const subj = encodeURIComponent(`[NK Verif Labs Scoping] ${document.getElementById("scope-service").value} (${document.getElementById("scope-pdk").value})`i);
-  const body = encodeURIComponent(buildScopeText());
-  window.location.href = `mailto:contact@nkveriflabs.com?subject=${subj}&body=${body}`;
+  const st = document.getElementById("scope-status");
+  const btn = e.target.querySelector("button[type=submit]");
+  btn.disabled = true;
+  st.className = "font-mono text-xs text-cyan-400";
+  st.textContent = "Sending scoping brief...";
+  try {
+    const res = await fetch("https://formspree.io/f/YOUR_FORMSPREE_ID", {
+      method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pdk: document.getElementById("scope-pdk").value,
+        service: document.getElementById("scope-service").value,
+        target_shuttle_date: document.getElementById("scope-date").value || "Flexible / TBD",
+        contact: document.getElementById("scope-email").value,
+        notes: document.getElementById("scope-notes").value,
+        brief: buildScopeText()
+      })
+    });
+    if (res.ok) {
+      st.className = "font-mono text-xs text-emerald-400";
+      st.textContent = "Scoping brief sent. We will reply shortly.";
+      e.target.reset();
+    } else {
+      throw new Error("Submission failed");
+    }
+  } catch (err) {
+    st.className = "font-mono text-xs text-rose-400";
+    st.textContent = "Failed to send. Use 'Copy Scoping Brief' or email contact@nkveriflabs.com.";
+  } finally {
+    btn.disabled = false;
+  }
 });
 document.getElementById("copy-scope-btn").addEventListener("click", async () => {
   await navigator.clipboard.writeText(buildScopeText());

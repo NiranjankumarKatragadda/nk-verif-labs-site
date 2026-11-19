@@ -3,6 +3,9 @@ name: Build Blog Manifest & Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  workflow_run:
+    workflows: ["Publish GitHub Issue as Blog Post"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:

@@ -528,20 +528,6 @@ document.getElementById("scoping-form").addEventListener("submit", async (e) => 
     btn.disabled = false;
   }
 });
-    if (res.ok) {
-      st.className = "font-mono text-xs text-emerald-400";
-      st.textContent = "Scoping brief sent. We will reply shortly.";
-      e.target.reset();
-    } else {
-      throw new Error("Submission failed");
-    }
-  } catch (err) {
-    st.className = "font-mono text-xs text-rose-400";
-    st.textContent = "Failed to send. Use 'Copy Scoping Brief' or email contact@nkveriflabs.com.";
-  } finally {
-    btn.disabled = false;
-  }
-});
 document.getElementById("copy-scope-btn").addEventListener("click", async () => {
   await navigator.clipboard.writeText(buildScopeText());
   document.getElementById("scope-status").textContent = "Copied scoping brief to clipboard!";
